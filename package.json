@@ -1,0 +1,19 @@
+{
+  "name": "jxnu_labrotary",
+  "version": "1.0.0",
+  "description": "江西师范大学工具集/顺便探索新的简易开发原型网站的方法",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://gitee.com/gmono/jxnu_labrotary.git"
+  },
+  "author": "gmono",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "postcss": "^7.0.14",
+    "posthtml": "^0.11.3"
+  }
+}
