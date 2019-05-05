@@ -1,0 +1,15 @@
+div
+{
+    background: red;
+    border: solid red 1px;
+
+}
+#heloo
+{
+    background: green;
+}
+
+div>.test#hello ul
+{
+    background: black;
+}

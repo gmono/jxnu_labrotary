@@ -30,3 +30,7 @@
 这样只支持类选择器
 还可以通过另附属性实现，但这样就需要解析css，可以通过postcss插件形式实现
 html部分考虑使用pug或html解析器解析
+
+## 修改的依赖
+postcss中屏蔽了所有fs和path模块的require 不使用时没有错误
+posthtml 添加了附加的api用于复杂功能
