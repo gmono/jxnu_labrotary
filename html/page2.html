@@ -5,19 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Document</title>
-    <link rel="stylesheet" href="./app/assets/test.css">
-    <link rel="stylesheet" href="test.css">
 </head>
 <body>
     <div>
         hello world
+        asdfalsdjfljl
+        <div id="hello">
+
+        </div>
+
     </div>
     <script>
         //window上的nowLoading字段指示正在加载的页面的name
-        window.pagename="page1";
-        window.page=function({$,window,document}){
+        ({$,window,document})=>{
             console.log("baidu.com");
-        }
+            console.log($("div"));
+            $("div").css("background","blue");
+        };
     </script>
+    <style>
+        div
+        {
+            background: green;
+        }
+        #hello:hover
+        {
+            background:black;
+        }
+    </style>
+
 </body>
 </html>

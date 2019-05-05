@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <link rel="stylesheet" href="./app/assets/test.css">
+    <link rel="stylesheet" href="test.css">
+    <link rel="stylesheet" href="./assets/css/style.css">
+</head>
+<body>
+    <div>
+        hello world
+    </div>
+    <div id="hello">
+        asdf
+    </div>
+    <p id="loading">loading...</p>
+<div id="images">
+  <div class="lighten">
+    <img src="./assets/img/lighten1.jpg" alt="" />
+    <img src="./assets/img/lighten2.jpg" alt="" />
+    <img src="./assets/img/lighten3.jpg" alt="" />
+    <img src="./assets/img/lighten4.jpg" alt="" />
+  </div>
+  <div class="normal">
+    <img src="./assets/img/normal1.jpg" alt="" />
+    <img src="./assets/img/normal2.jpg" alt="" />
+    <img src="./assets/img/normal3.jpg" alt="" />
+    <img src="./assets/img/normal4.jpg" alt="" />
+  </div>
+  <nav>
+    <ul>
+      <li class="pre"></li>
+      <li class="next"></li>
+    </ul>
+  </nav>
+</div>
+    <script>
+        //window上的nowLoading字段指示正在加载的页面的name
+       async  ({$,window,document,loadJS})=>{
+            console.log("baidu.com");
+            console.log($("div"));
+            document.getElementById("hello").style.background="yellow";
+            await loadJS("./assets/js/index.js");
+        };
+    </script>
+</body>
+</html>
