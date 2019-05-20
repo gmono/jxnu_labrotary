@@ -7,30 +7,62 @@
     <title>Document</title>
 </head>
 <body>
-    <div>
+    <div id="top">
         hello world
         asdfalsdjfljl
         <div id="hello">
 
+        点击测试
         </div>
+        <button>点我加载</button>
+        <div id="anpage1" class="anpage" style="">
 
+            </div>
+            <div id="anpage2" style="width:95%">
+
+                </div>
+        
     </div>
+    
+    </script>
     <script>
-        //window上的nowLoading字段指示正在加载的页面的name
-        ({$,window,document})=>{
-            console.log("baidu.com");
-            console.log($("div"));
-            $("div").css("background","blue");
-        };
+        if(props["now"]==null) props["now"]=1;
+        if(props.now<2)
+        {
+            loadFile($("#anpage2")[0],"./page2.html",{now:props["now"]+1});
+        }
+            
+        loadFile($("#anpage1")[0],"./page1.html");
+        $("#hello").click(()=>{
+            msghub.component("./page1.html").send("来自page2");
+        })
+        $("button").click(()=>{
+            let ele=document.createElement("div");
+            ele.className="anpage";
+            $("#top")[0].appendChild(ele);
+            loadFile(ele,"./page1.html");
+        });
+        
     </script>
     <style>
-        div
+        div#top
         {
             background: green;
+            border: solid 2px yellow;
+            height: 1000px;
+            overflow: visible;
         }
         #hello:hover
         {
             background:black;
+        }
+        #anpage1
+        {
+            border:solid 5px grey;
+        }
+        .anpage
+        {
+            width:600px;height:700px;margin-left:50px;display: inline-block;
         }
     </style>
 

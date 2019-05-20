@@ -143,7 +143,7 @@ function getGatcherOfScripts() {
             //提示专用的script引入
             if ("declare" in p.attrs)
                 return [];
-            let script = p.content;
+            let script = p.content.join("");
             allscripts += "\n" + script;
             //清除script标签
             return [];

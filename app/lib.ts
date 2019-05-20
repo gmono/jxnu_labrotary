@@ -4,6 +4,7 @@ declare interface Window
     parser(html:string):Promise<PostHTMLNode[]>;
     render(ast:PostHTMLNode[]):string;
     posthtml:PostHtmlModule;
+    core:MessageHub;
 }
 
 //节点的可允许类型

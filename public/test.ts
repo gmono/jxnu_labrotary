@@ -51,6 +51,8 @@ class MessageHub
     }
 }
 let core=new MessageHub();
+if(window.core!=null) core=window.core;
+
 /**
  * 端口
  */
@@ -159,8 +161,9 @@ function getcode(txt:string)
  * @param script html页面的script
  * @param modsign 用于表示此次加载的sign
  */
-async function loadPage(root:HTMLElement,text,script,modsign:string,name="*")
+async function loadPage(root:HTMLElement,text,script,modsign:string,name="*",props={})
 {
+    props={...props,root};
     root.innerHTML=text;
     //在html加载完成后执行的代码
     setTimeout(()=>{
@@ -168,7 +171,7 @@ async function loadPage(root:HTMLElement,text,script,modsign:string,name="*")
         let rootjq=$(root);
         //构造查询函数
         let jqfunc:JQFunc=(...args)=>{
-            return rootjq.children(...args);
+            return rootjq.find(...args);
         };
         //构造只读的window 并代理各种事件
         let onload;
@@ -254,7 +257,7 @@ function getContainer(root)
     root.appendChild(cont);
     return cont;
 }
-async function loadFile(root:HTMLElement,url)
+async function loadFile(root:HTMLElement,url,props={})
 {
     //处理root 取得相对容器
     root=getContainer(root);
@@ -265,10 +268,6 @@ async function loadFile(root:HTMLElement,url)
         let text=await res.text();
         //处理
         let {html,script,modsign}=await window.pack(text);
-        loadPage(ele,html,script,modsign,url);
+        loadPage(ele,html,script,modsign,url,props);
     }
 }
-loadFile($("div")[0],"./page1.html");
-loadFile($("div")[1],"./page2.html");
-loadFile($("#anpage1")[0],"./page1.html");
-loadFile($("#anpage2")[0],"./page1.html");
