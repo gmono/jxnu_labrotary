@@ -82,6 +82,10 @@ function getSignCssFunc(sign:string){
                 root.walkRules((selector,idx)=>{
                     //处理css选择器
                     selector.selectors=selector.selectors.map((value,idx)=>{
+                        if(value=="nav li:hover")
+                        {
+                            console.log("cut");
+                        }
                         //在这里处理每个selector
                         //设法跳过伪类和伪元素
                         let state=0; //0-冒号->1-其他字符->位置  1-冒号->2-其他字符->位置 找不到则将位置设为最后
@@ -102,7 +106,11 @@ function getSignCssFunc(sign:string){
                             {
                                 //其他字符 只要不是0 则表示此位置在目标位置前面一位
                                 destidx=i+1;
+                                break;
                             }
+                        }
+                        if(value.substr(0,destidx)=="n"){
+                            console.log(value);
                         }
                         //在末尾添加
                         if(destidx==-1) return `${value}[data-sign="${modsign}"]`;
@@ -215,7 +223,7 @@ async function pack(str:string,modsign:string=getRandomStr()){
     .use(gatherScripts)
     .process(str);
     //调试
-    console.log(h.html,scriptContainer.allscripts);
+    // console.log(h.html,scriptContainer.allscripts);
     //提取html中的script和普通标签
     return {html:h.html,script:scriptContainer.allscripts,modsign:modsign};
 };

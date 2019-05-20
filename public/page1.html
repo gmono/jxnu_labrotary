@@ -5,9 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Document</title>
-    <link rel="stylesheet" href="./app/assets/test.css">
-    <link rel="stylesheet" href="test.css">
     <link rel="stylesheet" href="./assets/css/style.css">
+    <link rel="stylesheet" href="test.css">
 </head>
 <body>
     <div>
@@ -16,6 +15,10 @@
     <div id="hello">
         asdf
     </div>
+    <div>
+      Lorem ipsum dolor sit, amet consectetur adipisicing elit. Voluptates delectus repudiandae dolorum quia possimus in voluptate velit ad. Dolores non blanditiis nobis unde hic voluptate alias dolorem error porro delectus optio neque aspernatur illum quas, commodi ducimus eveniet ipsam reprehenderit aliquam architecto repudiandae beatae necessitatibus obcaecati voluptatum! Recusandae beatae culpa a ab nostrum incidunt consequuntur nam amet ut sint qui, mollitia maiores nemo quis deleniti eveniet, quae, esse hic omnis! Earum in dolores, aperiam exercitationem qui quasi blanditiis odio sunt! Ratione, nam libero dolorum reiciendis dolore minus quam neque voluptas, numquam totam deleniti. Qui reiciendis culpa doloribus repellat est ipsam.
+    </div>
+    <button>点我发消息</button>
     <p id="loading">loading...</p>
 <div id="images">
   <div class="lighten">
@@ -42,6 +45,15 @@
         console.log("baidu.com");
         console.log($("div"));
         document.getElementById("hello").style.background="yellow";
+        msghub.Source.register((obj)=>{
+            console.log(obj);
+            alert(`我是${msghub.id} 属于组件 ${msghub.componentname} 分组:${msghub.groupid}
+            我接到消息:${JSON.stringify(obj.data)} 来自:${obj.sender}`);
+        });
+        $("button").click(()=>{
+          msghub.component("./page1.html").exceptSelf().send("hello world");
+        })
+        
     </script>
     <script src="./assets/js/index.js">
     </script>

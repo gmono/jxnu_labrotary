@@ -1,4 +1,118 @@
+class EventHub {
+    constructor() {
+        this.cbks = [];
+    }
+    /**
+     * register
+     */
+    register(cbk) {
+        this.cbks.push(cbk);
+    }
+    send(pars) {
+        this.cbks.forEach((v) => {
+            v(pars);
+        });
+    }
+}
+/**
+ * 消息约定 *代表未知  sys代表系统
+ */
 class MessageHub {
+    constructor() {
+        this.id_lst = [];
+        //id->MessageClient
+        this.id_map = {};
+    }
+    send(id, selfid, obj) {
+        this.getClient(id).Source.send({
+            sender: selfid,
+            data: obj
+        });
+    }
+    getClient(id) {
+        if (id in this.id_map)
+            return this.id_map[id];
+        return null;
+    }
+    register(client) {
+        client.setCore(this);
+        if (client.id in this.id_map)
+            return false;
+        this.id_lst.push(client.id);
+        this.id_map[client.id] = client;
+    }
+}
+let core = new MessageHub();
+/**
+ * 端口
+ */
+class MessageClient {
+    constructor(core, id, componentname = "*", groupid = "*") {
+        this.core = core;
+        this.id = id;
+        this.componentname = componentname;
+        this.groupid = groupid;
+        this.sendids = null;
+        this.Source = new EventHub();
+        this.sendids = core.id_lst;
+    }
+    setCore(value) {
+        this.core = value;
+        this.sendids = this.core.id_lst;
+    }
+    /**
+     * 直接调用等于广播消息
+     * @param obj 发送的对象
+     */
+    send(obj) {
+        this.sendids.forEach((value, idx) => {
+            this.core.send(value, this.id, obj);
+        });
+    }
+    group(groupid) {
+        let ret = new MessageClient(this.core, this.id, this.componentname, this.groupid);
+        ret.sendids = this.sendids.filter((value, idx) => {
+            if (this.core.getClient(value).groupid == groupid)
+                return true;
+            return false;
+        });
+        return ret;
+    }
+    component(componentname) {
+        let ret = new MessageClient(this.core, this.id, this.componentname, this.groupid);
+        ret.sendids = this.sendids.filter((value, idx) => {
+            if (this.core.getClient(value).componentname == componentname)
+                return true;
+            return false;
+        });
+        return ret;
+    }
+    ids(...ids) {
+        let ret = new MessageClient(this.core, this.id, this.componentname, this.groupid);
+        //过滤不存在的
+        ret.sendids = ids.filter((value, idx) => {
+            if (this.core.getClient(value) != null)
+                return true;
+            return false;
+        });
+        ;
+        return ret;
+    }
+    except(...ids) {
+        let ret = new MessageClient(this.core, this.id, this.componentname, this.groupid);
+        //过滤不存在的
+        ret.sendids = this.sendids.filter((value, idx) => {
+            //如果在排除列表
+            if (ids.indexOf(value) != -1)
+                return false;
+            return true;
+        });
+        ;
+        return ret;
+    }
+    exceptSelf() {
+        return this.except(this.id);
+    }
 }
 //组件化基本程序
 function getcode(txt) {
@@ -13,7 +127,7 @@ function getcode(txt) {
  * @param script html页面的script
  * @param modsign 用于表示此次加载的sign
  */
-async function loadPage(root, text, script, modsign) {
+async function loadPage(root, text, script, modsign, name = "*") {
     root.innerHTML = text;
     //在html加载完成后执行的代码
     setTimeout(() => {
@@ -78,11 +192,13 @@ async function loadPage(root, text, script, modsign) {
         });
         //页面主函数参数
         //这里jq和document创建节点时放上sign
+        let client = new MessageClient(core, modsign, name);
+        core.register(client);
         let pars = {
             $: jqfunc,
             window: pwindow,
             document: pdocument,
-            msghub: new MessageHub()
+            msghub: client
         };
         //合成代码
         let evalfunc = ({ $, window, document, msghub }) => {
@@ -113,7 +229,7 @@ async function loadFile(root, url) {
         let text = await res.text();
         //处理
         let { html, script, modsign } = await window.pack(text);
-        loadPage(ele, html, script, modsign);
+        loadPage(ele, html, script, modsign, url);
     }
 }
 loadFile($("div")[0], "./page1.html");

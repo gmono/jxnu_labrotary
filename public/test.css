@@ -4,12 +4,13 @@ div
     border: solid red 1px;
 
 }
-#heloo
+#hello
 {
     background: green;
 }
 
-div>.test#hello ul
+#hello::after
 {
-    background: black;
+    content: "我是水水水水水水";
+    background: yellowgreen;
 }
