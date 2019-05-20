@@ -75,7 +75,34 @@ function getSignCssFunc(sign) {
                 root.walkRules((selector, idx) => {
                     //处理css选择器
                     selector.selectors = selector.selectors.map((value, idx) => {
-                        return `${value}[data-sign="${modsign}"]`;
+                        //在这里处理每个selector
+                        //设法跳过伪类和伪元素
+                        let state = 0; //0-冒号->1-其他字符->位置  1-冒号->2-其他字符->位置 找不到则将位置设为最后
+                        //状态机
+                        let tarnslist = {};
+                        let dotrans = () => { if (state in tarnslist)
+                            state = tarnslist[state]; tarnslist = {}; };
+                        let trans = (f, t) => { if (!(f in tarnslist))
+                            tarnslist[f] = t; };
+                        let destidx = -1;
+                        for (let i = value.length - 1; i >= 0; --i) {
+                            //搜索最后一个冒号或双冒号
+                            let char = value[i];
+                            if (char == ":") {
+                                trans(0, 1);
+                                trans(1, 2);
+                                dotrans();
+                            }
+                            else if (state != 0) {
+                                //其他字符 只要不是0 则表示此位置在目标位置前面一位
+                                destidx = i + 1;
+                            }
+                        }
+                        //在末尾添加
+                        if (destidx == -1)
+                            return `${value}[data-sign="${modsign}"]`;
+                        else
+                            return `${value.substr(0, destidx)}[data-sign="${modsign}"]${value.substr(destidx)}`;
                     });
                     return selector;
                 });
@@ -120,9 +147,9 @@ function getGatcherOfScripts() {
     };
     return { scriptContainer, gatherScripts };
 }
-async function pack(str) {
+//可自定义地提供modsign
+async function pack(str, modsign = getRandomStr()) {
     let ret;
-    let modsign = getRandomStr();
     let { gatherScripts, scriptContainer } = getGatcherOfScripts();
     let h = await html([posthtml_api_1.ApiRecord])
         .use(deleteDocType)
@@ -187,7 +214,7 @@ async function pack(str) {
     //调试
     console.log(h.html, scriptContainer.allscripts);
     //提取html中的script和普通标签
-    return { html: h.html, script: scriptContainer.allscripts };
+    return { html: h.html, script: scriptContainer.allscripts, modsign: modsign };
 }
 ;
 window.pack = pack;

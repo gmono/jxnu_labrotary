@@ -39,12 +39,11 @@
 </div>
     <script>
         //window上的nowLoading字段指示正在加载的页面的name
-       async  ({$,window,document,loadJS})=>{
-            console.log("baidu.com");
-            console.log($("div"));
-            document.getElementById("hello").style.background="yellow";
-            await loadJS("./assets/js/index.js");
-        };
+        console.log("baidu.com");
+        console.log($("div"));
+        document.getElementById("hello").style.background="yellow";
+    </script>
+    <script src="./assets/js/index.js">
     </script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 declare interface Window
 {
-    pack(str:string):Promise<{html:string,script:string}>;
+    pack(str:string):Promise<{html:string,script:string,modsign:string}>;
     parser(html:string):Promise<PostHTMLNode[]>;
     render(ast:PostHTMLNode[]):string;
     posthtml:PostHtmlModule;
