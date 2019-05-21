@@ -60,3 +60,8 @@
 
 postcss中屏蔽了所有fs和path模块的require 不使用时没有错误
 posthtml 添加了附加的api用于复杂功能
+
+##目录结构
+
+1. app保存加载器等需要node支持的库
+2. public保存测试网页，test.ts（loadPage）等纯浏览器端的库（避免重编译）
