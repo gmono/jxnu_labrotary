@@ -286,5 +286,8 @@ async function loadFile(root:HTMLElement,url,props={})
         //处理
         let {html,script,modsign}=await window.pack(text);
         loadPage(ele,html,script,modsign,url,props);
+        return modsign;
     }
+    return null;
+
 }

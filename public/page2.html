@@ -21,27 +21,34 @@
             <div id="anpage2" style="width:95%">
 
                 </div>
+        <button id="stellar">stellar</button>
         
     </div>
     
     </script>
     <script>
         if(props["now"]==null) props["now"]=1;
-        if(props.now<2)
+        if(props.now<1)
         {
-            loadFile($("#anpage2")[0],"./page2.html",{now:props["now"]+1});
+            // loadFile($("#anpage2")[0],"./page2.html",{now:props["now"]+1});
         }
             
         loadFile($("#anpage1")[0],"./page1.html");
         $("#hello").click(()=>{
             msghub.component("./page1.html").send("来自page2");
         })
+        let s=1;
         $("button").click(()=>{
             let ele=document.createElement("div");
             ele.className="anpage";
+            ele.setAttribute("data-stellar-ratio",s*0.5);
+            ele.style.position="relative";
+            ele.style.marginTop="50px;"
+            s++;
             $("#top")[0].appendChild(ele);
             loadFile(ele,"./page1.html");
         });
+        $("#stellar").click(()=>$("#top").stellar());
         
     </script>
     <style>
@@ -50,7 +57,7 @@
             background: green;
             border: solid 2px yellow;
             height: 1000px;
-            overflow: visible;
+            overflow: scroll;
         }
         #hello:hover
         {

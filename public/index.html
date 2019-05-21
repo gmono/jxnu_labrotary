@@ -6,31 +6,35 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>组件化测试程序</title>
     <!-- jQuery (Bootstrap 的所有 JavaScript 插件都依赖 jQuery，所以必须放在前边) -->
-    <script src="./jquery.min.js"></script>
+    <script src="./bower_components/jquery/dist/jquery.js"></script>
+    <script src="./bower_components/jquery-migrate/jquery-migrate.js"></script>
+    <script src="./bower_components/jquery.stellar/jquery.stellar.js"></script>
     <script src="app.js"></script>
     <script>
         require("loader");
     </script>
 </head>
 <body>
-    <div>
-
-    </div>
+    
     <div>
         
     </div>
-    <div id="anpage1" style="margin-top:500px;width:600px;display: inline-block">
+    <div id="anpage1" data-stellar-ratio="0.5"  style="position: relative;margin-top:500px;width:600px;display: inline-block">
 
     </div>
-    <div id="anpage2" style="margin-top:500px;width:600px;display: inline-block">
+    <div id="anpage2" data-stellar-ratio="0.8" style="position: absolute;margin-top:500px;width:600px;display: inline-block">
+
+        </div>
+        <div id="last" data-stellar-ratio="1.2" style="position: absolute;;padding-top: 200px;">
 
         </div>
     <script src="./test.js">
     </script>
     <script>
-        loadFile($("div")[0],"./page2.html");
+        loadFile($("#last")[0],"./page2.html");
         loadFile($("#anpage1")[0],"./page1.html");
         loadFile($("#anpage2")[0],"./page1.html");
+        $(document.body).stellar();
     </script>
 </body>
 </html>
