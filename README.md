@@ -37,7 +37,20 @@
 3. Window的Proxy 监视逻辑尚不完善
 4. 测试使用Proxy 的polyfill时的效果，以及同时使用ES5编译时能不能在低版本浏览器工作
 5. 将之前临时写在app目录里的lib.ts 声明文件规范化并和public中的声明分开（例如对Window类的追加声明）
-
+6. 给组件文件（page）内添加语法提示（例如props和msghub等，考虑通过只在测试时生效的专用声明文件实现
+7. 添加容器型slot（modsign无关）支持
+8. 添加组件声明式引用,即将
+    ```html
+    <component src="./page1.html"></component>
+    ```
+    转换为
+    ```html
+    <div id="__component_1"></div>
+    <script>
+    loadFile(document.getElementById("__component_1"),"./page1.html")
+    </script>
+    ```
+9. 添加功能型slot支持（modsign一致化，通过loadFile的自定义modsign实现），其可以起到style容器的功能
 ## 修改的依赖
 >由于部分依赖特别是Posthtml中提供的功能比如match等不完整，遍历方式局限，修改方式局限使中间件功能不能完成 因此重写了部分依赖
 
