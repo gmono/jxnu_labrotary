@@ -32,7 +32,7 @@
 当前进度：测试JQ插件基本可用 插件中没有使用JQ，但使用了window.onload和document的创建节点等功能 目前工作正常 域封闭性正常 CSS封闭性正常 JS作用域封闭基本正常其他有待测试
 
 ## 目前工作重点
-1. 编写需要代理的Document的Proxy对象和Window的Proxy对象
+1. 编写需要代理的Document的Proxy对象和Window的Proxy对象,设法将代理对象从loadPage函数中分离出来
 2. 测试组件内引入JQ时会不会出现越界
 3. Window的Proxy 监视逻辑尚不完善
 4. 测试使用Proxy 的polyfill时的效果，以及同时使用ES5编译时能不能在低版本浏览器工作
