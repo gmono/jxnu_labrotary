@@ -123,6 +123,14 @@ function getcode(txt) {
     return txt.substring(first + 1, last);
 }
 /**
+ * 调用代理工厂
+ */
+function getCallProxy(_this) {
+    return (func) => (...args) => {
+        return func.apply(_this, args);
+    };
+}
+/**
  *
  * @param root 挂载的根节点
  * @param text html页面的文本
@@ -139,17 +147,24 @@ async function loadPage(root, text, script, modsign, name = "*", props = {}) {
         let jqfunc = (...args) => {
             return rootjq.find(...args);
         };
-        //构造只读的window 并代理各种事件
-        let onload;
+        //代理window对象
+        let window_proxy = {
+            onload: null
+        };
         let pwindow = new Proxy(window, {
             get(target, p, receiver) {
+                if (p in window_proxy)
+                    return window_proxy[p];
                 return target[p];
             },
             set(target, p, value, receiver) {
                 //置换各种事件
-                if (p == "onload")
-                    onload = value;
-                console.log("组件尝试非法写入");
+                if (p in window_proxy)
+                    window_proxy[p] = value;
+                else {
+                    console.log("组件尝试非法写入");
+                    return false;
+                }
                 return true;
             }
         });
@@ -165,10 +180,7 @@ async function loadPage(root, text, script, modsign, name = "*", props = {}) {
                 return ele;
             }
         };
-        //调用代理
-        const call_proxy = (func) => (...args) => {
-            return func.apply(document, args);
-        };
+        const document_call_proxy = getCallProxy(document);
         //代理文档
         let pdocument = new Proxy(document, {
             get(target, p, receiver) {
@@ -181,7 +193,7 @@ async function loadPage(root, text, script, modsign, name = "*", props = {}) {
                 else if (p in document_proxy) {
                     //如果document代理上有优先使用代理函数
                     if (document_proxy[p] instanceof Function)
-                        return call_proxy(document_proxy[p]);
+                        return document_call_proxy(document_proxy[p]);
                     else
                         return document_proxy[p];
                 }
@@ -203,15 +215,16 @@ async function loadPage(root, text, script, modsign, name = "*", props = {}) {
             document: pdocument,
             msghub: client
         };
-        //合成代码
+        //执行代码
         let evalfunc = ({ $, window, document, msghub }) => {
             eval(script);
         };
         evalfunc(pars);
+        //处理后续操作（触发各种事件等）
         //调用onload
         setTimeout((() => {
             let { $, window, document, msghub } = pars;
-            onload && onload();
+            window_proxy.onload && window_proxy.onload();
         }), 0);
     }, 0);
 }
