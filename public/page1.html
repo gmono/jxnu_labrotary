@@ -42,6 +42,7 @@
 </div>
     <script>
         //window上的nowLoading字段指示正在加载的页面的name
+        if("back" in props) $("button").text("back:"+props["back"]);
         console.log("baidu.com");
         console.log($("div"));
         document.getElementById("hello").style.background="yellow";

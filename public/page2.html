@@ -15,13 +15,13 @@
         点击测试
         </div>
         <button>点我加载</button>
-        <div id="anpage1" class="anpage" style="">
+        <!-- <div id="anpage1" class="anpage" style="">
 
-            </div>
+            </div> -->
+        <component src="./page1.html" props="{back:1}"></component>
             <div id="anpage2" style="width:95%">
 
                 </div>
-        <button id="stellar">stellar</button>
         
     </div>
     
@@ -33,7 +33,7 @@
             // loadFile($("#anpage2")[0],"./page2.html",{now:props["now"]+1});
         }
             
-        loadFile($("#anpage1")[0],"./page1.html");
+        // loadFile($("#anpage1")[0],"./page1.html");
         $("#hello").click(()=>{
             msghub.component("./page1.html").send("来自page2");
         })
@@ -48,7 +48,6 @@
             $("#top")[0].appendChild(ele);
             loadFile(ele,"./page1.html");
         });
-        $("#stellar").click(()=>$("#top").stellar());
         
     </script>
     <style>

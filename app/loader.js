@@ -155,10 +155,10 @@ function getGatcherOfScripts() {
     return { scriptContainer, gatherScripts };
 }
 //可自定义地提供modsign
-async function pack(str, modsign = getRandomStr()) {
+async function pack(str, pre_middleware = [], rare_middleware = [], modsign = getRandomStr()) {
     let ret;
     let { gatherScripts, scriptContainer } = getGatcherOfScripts();
-    let h = await html([posthtml_api_1.ApiRecord])
+    let h = await html([posthtml_api_1.ApiRecord].concat(pre_middleware.map((v) => v(modsign, str))))
         .use(deleteDocType)
         .use((tree) => {
         //给所有标签打上模块sign
@@ -218,14 +218,20 @@ async function pack(str, modsign = getRandomStr()) {
         .use(getSignCssFunc(modsign))
         .use(gatherScripts)
         .process(str);
+    //后处理部分
+    let phtml = h.html;
+    if (rare_middleware.length != 0) {
+        phtml = (await html([posthtml_api_1.ApiRecord].concat(rare_middleware.map((v) => v(modsign, phtml, scriptContainer)))).process(phtml)).html;
+    }
     //调试
     // console.log(h.html,scriptContainer.allscripts);
     //提取html中的script和普通标签
-    return { html: h.html, script: scriptContainer.allscripts, modsign: modsign };
+    return { html: phtml, script: scriptContainer.allscripts, modsign: modsign };
 }
 ;
 window.pack = pack;
 window.parser = parser;
 window.render = render;
 window.posthtml = html;
+window.treeapis = { ApiSet: posthtml_api_1.ApiSet, ApiReset: posthtml_api_1.ApiReset };
 //# sourceMappingURL=loader.js.map

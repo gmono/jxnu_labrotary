@@ -163,7 +163,7 @@ function getCallProxy(_this:any){
     }
 }
 /**
- * 
+ * 加载一个页面到节点中（页面包括html文本和script)
  * @param root 挂载的根节点
  * @param text html页面的文本
  * @param script html页面的script
@@ -274,7 +274,43 @@ function getContainer(root)
     root.appendChild(cont);
     return cont;
 }
-async function loadFile(root:HTMLElement,url,props={})
+
+
+
+
+//自定义的组件加载
+function getTrans(baseurl:string="/"){
+    let compsum=0;
+    let compontentTrans=(modsign:string,text:string)=>async (tree:PostHTMLTree)=>{
+        window.treeapis.ApiSet(tree,"first");
+        await tree.match({tag:"component"},(p)=>{
+            if(typeof p=="string") return p;
+            let src=p.attrs["src"];
+            //执行代码得到对象
+            let propscode="{}";
+            if("props" in p.attrs) propscode=p.attrs["props"];
+            src=baseurl.split("/").concat(src.split("/")).join("/").replace("//","/");
+            p.tag="div";
+            p.attrs["id"]=`__component__${compsum}`;
+            let script=<PostHTMLNode>{
+                tag:"script",
+                attrs:[],
+                content:[`loadFile(document.getElementById("__component__${compsum}"),"${src}",${propscode});`]
+            }
+            compsum++;
+            return [p,script];
+        })
+    };
+    return compontentTrans;
+}
+/**
+ * 加载文件到节点中作为组件
+ * @param root 加载的根节点
+ * @param url 加载的文件路径
+ * @param props 组件属性对象（在组件内以props引用）
+ * @param mdsign 自定义组件标识，用于纯粹内容加载时提供相同的sign或者对特殊部件提供特定的sign做id
+ */
+async function loadFile(root:HTMLElement,url,props={},mdsign=null)
 {
     //处理root 取得相对容器
     root=getContainer(root);
@@ -284,7 +320,7 @@ async function loadFile(root:HTMLElement,url,props={})
     {
         let text=await res.text();
         //处理
-        let {html,script,modsign}=await window.pack(text);
+        let {html,script,modsign}=await (mdsign==null? window.pack(text,[getTrans()]):window.pack(text,[getTrans()],[],mdsign));
         loadPage(ele,html,script,modsign,url,props);
         return modsign;
     }

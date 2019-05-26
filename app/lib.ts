@@ -1,9 +1,14 @@
+
+
+type PreMiddleWareFactor=(modsign:string,text:string)=>(tree:PostHTMLTree)=>Promise<void>;
+type RareMiddleWareFactor=(modsign:string,html:string,script:{allscripts:string})=>(tree:PostHTMLTree)=>Promise<void>;
 declare interface Window
 {
-    pack(str:string):Promise<{html:string,script:string,modsign:string}>;
+    pack(str:string,pre_middleware?:Array<PreMiddleWareFactor>,rare_middleware?:Array<RareMiddleWareFactor>,modsign?:string):Promise<{html:string,script:string,modsign:string}>;
     parser(html:string):Promise<PostHTMLNode[]>;
     render(ast:PostHTMLNode[]):string;
     posthtml:PostHtmlModule;
+    treeapis:{ApiSet:(tree: any, traverse_method?: any) => void,ApiReset:(tree: any) => void};
     core:MessageHub;
 }
 

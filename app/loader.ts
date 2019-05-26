@@ -4,7 +4,7 @@ import * as render from "posthtml-render";
 
 let html=posthtml as PostHtmlModule;
 const getRandomStr=()=>Math.random().toString(36).substr(2);
-import { ApiSet, ApiReset, ApiRecord } from "./posthtml_api";
+import { ApiSet, ApiReset, ApiRecord } from './posthtml_api';
 import * as postcss from "postcss";
 function isBrowser(){
     try
@@ -161,11 +161,13 @@ function getGatcherOfScripts(){
     }
     return {scriptContainer,gatherScripts};
 }
+
+
 //可自定义地提供modsign
-async function pack(str:string,modsign:string=getRandomStr()){
+async function pack(str:string,pre_middleware:Array<PreMiddleWareFactor>=[],rare_middleware:Array<RareMiddleWareFactor>=[],modsign:string=getRandomStr()){
     let ret;
     let {gatherScripts,scriptContainer}=getGatcherOfScripts();
-    let h=await html([ApiRecord])
+    let h=await html([ApiRecord].concat(pre_middleware.map((v)=>v(modsign,str))))
     .use(deleteDocType)
     .use((tree)=>{
         //给所有标签打上模块sign
@@ -222,13 +224,22 @@ async function pack(str:string,modsign:string=getRandomStr()){
     .use(getSignCssFunc(modsign))
     .use(gatherScripts)
     .process(str);
+    //后处理部分
+    let phtml=h.html;
+    if(rare_middleware.length!=0)
+    {
+        phtml=(await html([ApiRecord].concat(rare_middleware.map((v)=>v(modsign,phtml,scriptContainer)))).process(phtml)).html;
+    }
     //调试
     // console.log(h.html,scriptContainer.allscripts);
     //提取html中的script和普通标签
-    return {html:h.html,script:scriptContainer.allscripts,modsign:modsign};
+    return {html:phtml,script:scriptContainer.allscripts,modsign:modsign};
 };
 
 window.pack=pack;
 window.parser=parser;
 window.render=render;
 window.posthtml=html;
+
+
+window.treeapis={ApiSet,ApiReset};
