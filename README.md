@@ -61,7 +61,15 @@
 postcss中屏蔽了所有fs和path模块的require 不使用时没有错误
 posthtml 添加了附加的api用于复杂功能
 
-##目录结构
+## 目录结构
 
 1. app保存加载器等需要node支持的库
 2. public保存测试网页，test.ts（loadPage）等纯浏览器端的库（避免重编译）
+
+## 测试方法
+在public目录里执行一个静态文件服务器，例如python -m http.server
+
+## 依赖管理
+app.js为一次编译而成，使用brunch 编译后不再改动，运行不需要node环境，app目录依赖通过yarn管理
+public目录中的依赖由bower管理，例如jquery等给前端用的库
+在执行yarn后可能需要注释postcss中的require("fs")或 require("path")的行
