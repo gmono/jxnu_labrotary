@@ -279,7 +279,7 @@ function getContainer(root)
 
 
 //自定义的组件加载
-function getTrans(baseurl:string="/"){
+function getTrans(baseurl:string=new URL(window.location.href).pathname){
     let compsum=0;
     let compontentTrans=(modsign:string,text:string)=>async (tree:PostHTMLTree)=>{
         window.treeapis.ApiSet(tree,"first");
@@ -289,7 +289,8 @@ function getTrans(baseurl:string="/"){
             //执行代码得到对象
             let propscode="{}";
             if("props" in p.attrs) propscode=p.attrs["props"];
-            src=baseurl.split("/").concat(src.split("/")).join("/").replace("//","/");
+            src=join(baseurl,src);
+            console.log(src);
             p.tag="div";
             p.attrs["id"]=`__component__${compsum}`;
             let script=<PostHTMLNode>{

@@ -237,7 +237,7 @@ function getContainer(root) {
     return cont;
 }
 //自定义的组件加载
-function getTrans(baseurl = "/") {
+function getTrans(baseurl = new URL(window.location.href).pathname) {
     let compsum = 0;
     let compontentTrans = (modsign, text) => async (tree) => {
         window.treeapis.ApiSet(tree, "first");
@@ -249,7 +249,8 @@ function getTrans(baseurl = "/") {
             let propscode = "{}";
             if ("props" in p.attrs)
                 propscode = p.attrs["props"];
-            src = baseurl.split("/").concat(src.split("/")).join("/").replace("//", "/");
+            src = join(baseurl, src);
+            console.log(src);
             p.tag = "div";
             p.attrs["id"] = `__component__${compsum}`;
             let script = {
