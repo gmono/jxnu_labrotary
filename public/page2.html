@@ -48,7 +48,10 @@
             $("#top")[0].appendChild(ele);
             loadFile(ele,"./page1.html");
         });
-        
+        d3.timer((e)=>{
+            d3.selectAll($("div").toArray()).transition().duration(200).attr("r",a++);
+            d3.select("div").transition().duration(200).style("background-color",`rgb(${a/2},${a/1.8},${a/1.5})`);
+        });
     </script>
     <style>
         div#top

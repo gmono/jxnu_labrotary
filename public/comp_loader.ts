@@ -16,7 +16,7 @@ interface PageFuncPars
     window:Window;
     document:Document;
     msghub:MessageClient;
-    d3:d3.Selection<HTMLElement,{},null,undefined>;
+    d3:typeof d3;
 }
 type PageFunc=(pars:PageFuncPars)=>Promise<void>;
 //组件化基本程序
@@ -34,6 +34,18 @@ function getCallProxy(_this:any){
     return (func:Function)=>(...args)=>{
         return func.apply(_this,args);
     }
+}
+function thisApply(proxyobj:any,thisobj:any)
+{
+    let retobj={};
+    let callproxy=getCallProxy(thisobj);
+    for(let k in proxyobj)
+    {
+        if(proxyobj[k] instanceof Function)
+            retobj[k]=callproxy(proxyobj[k]);
+        else retobj[k]=proxyobj[k];
+    }
+    return retobj;
 }
 /**
  * 加载一个页面到节点中（页面包括html文本和script)
@@ -114,6 +126,28 @@ async function loadPage(root:HTMLElement,text,script,modsign:string,name="*",pro
                 return true;
             }
         });
+        //d3 代理
+         
+        
+        //d3代理对象 用于模拟完整的全局d3 对象
+        const d3proxy_obj=thisApply({
+            selectAll(selector:any){
+                if(typeof selector=="string") return d3.select(root).selectAll(selector);
+                else return d3.selectAll(selector);
+            }
+        },d3.select(root));
+        const d3proxy=new Proxy(d3,{
+            get(target,p,receiver){
+                const rootd3=d3.select(root);
+                if(p in d3proxy_obj) return d3proxy_obj[p];
+                if(p in rootd3) return rootd3[p];
+                return d3[p];
+            },
+            set(target,p,value,receiver){
+                //禁止写入
+                return false;
+            }
+        })
         //页面主函数参数
         //这里jq和document创建节点时放上sign
         let client=new MessageClient(core,modsign,name);
@@ -123,7 +157,7 @@ async function loadPage(root:HTMLElement,text,script,modsign:string,name="*",pro
             window:pwindow,
             document:pdocument,
             msghub:client,
-            d3:d3.select(root)
+            d3:d3proxy
         };
         //执行代码
         let evalfunc=({$,window,document,msghub,d3})=>{
