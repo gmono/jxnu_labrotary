@@ -14,13 +14,19 @@ class EventHub<P>
         });
     }
 }
+type TopMessageType="system"|"custom";
+/**
+ * 顶层消息
+ * 带有发送者id 消息类型 和 数据负载
+ */
 interface Message
 {
     sender:string;
+    typeid:TopMessageType;
     data:any;
 }
 /**
- * 消息约定 *代表未知  sys代表系统
+ * 组 id和组件名约定 *代表未知  sys代表系统 其他自定义
  */
 class MessageHub
 {
@@ -35,6 +41,7 @@ class MessageHub
     {
         this.getClient(id).Source.send({
             sender:selfid,
+            typeid:"custom",
             data:obj});
     }
     public getClient(id:string)
@@ -44,7 +51,7 @@ class MessageHub
     }
     public register(client:MessageClient)
     {
-        client.setCore(this);
+        client.Core=this;
         if(client.id in this.id_map) return false;
         this.id_lst.push(client.id);
         this.id_map[client.id]=client;
@@ -53,23 +60,30 @@ class MessageHub
 
 
 /**
- * 端口
+ * 基本Message客户端，只负责传递消息，不解释data的含义
+ * 提供基本的对特定组件/组/id 发送消息的功能
+ * 提供组件自身的基本信息 包括自身的id 组件name 和组id
+ * 允许客户端获取只读Core对象并使用其与全局交互
  */
 class MessageClient
 {
-    constructor(public core:MessageHub,
-                public id:string,
-                public componentname:string="*",
-                public groupid:string="*")
+    constructor(protected core:MessageHub,
+                public readonly id:string,
+                public readonly componentname:string="*",
+                public readonly groupid:string="*")
                 {
                     this.sendids=core.id_lst;
                 }
     
     protected sendids:Array<string>=null;
-    public setCore(value:MessageHub)
+    public set Core(value:Readonly<MessageHub>)
     {
         this.core=value;
         this.sendids=this.core.id_lst;
+    }
+    public get Core():Readonly<MessageHub>
+    {
+        return this.core;
     }
     /**
      * 直接调用等于广播消息
@@ -125,6 +139,9 @@ class MessageClient
     {
         return this.except(this.id);
     }
+    /**
+     * 事件Hub 允许组件监听事件
+     */
     public Source:EventHub<Message>=new EventHub<Message>();
     
 }

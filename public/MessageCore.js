@@ -15,7 +15,7 @@ class EventHub {
     }
 }
 /**
- * 消息约定 *代表未知  sys代表系统
+ * 组 id和组件名约定 *代表未知  sys代表系统 其他自定义
  */
 class MessageHub {
     constructor() {
@@ -26,6 +26,7 @@ class MessageHub {
     send(id, selfid, obj) {
         this.getClient(id).Source.send({
             sender: selfid,
+            typeid: "custom",
             data: obj
         });
     }
@@ -35,7 +36,7 @@ class MessageHub {
         return null;
     }
     register(client) {
-        client.setCore(this);
+        client.Core = this;
         if (client.id in this.id_map)
             return false;
         this.id_lst.push(client.id);
@@ -43,7 +44,10 @@ class MessageHub {
     }
 }
 /**
- * 端口
+ * 基本Message客户端，只负责传递消息，不解释data的含义
+ * 提供基本的对特定组件/组/id 发送消息的功能
+ * 提供组件自身的基本信息 包括自身的id 组件name 和组id
+ * 允许客户端获取只读Core对象并使用其与全局交互
  */
 class MessageClient {
     constructor(core, id, componentname = "*", groupid = "*") {
@@ -52,12 +56,18 @@ class MessageClient {
         this.componentname = componentname;
         this.groupid = groupid;
         this.sendids = null;
+        /**
+         * 事件Hub 允许组件监听事件
+         */
         this.Source = new EventHub();
         this.sendids = core.id_lst;
     }
-    setCore(value) {
+    set Core(value) {
         this.core = value;
         this.sendids = this.core.id_lst;
+    }
+    get Core() {
+        return this.core;
     }
     /**
      * 直接调用等于广播消息
