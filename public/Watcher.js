@@ -13,17 +13,21 @@ var Watcher;
         //发出此对象更改消息
         MessageCbk(obj);
         //发出parent更改消息
-        if (obj[Parent] != null)
-            Changed(obj[Parent]);
+        if (obj[Watcher_1.Parent] != null)
+            Changed(obj[Watcher_1.Parent]);
     }
     ///
-    const Parent = Symbol("父对象的代理对象的指针");
-    const SelfName = Symbol("此对象在父对象中的属性名，如果有");
-    const NoProxy = Symbol("表明此对象不需要Proxy化");
-    const NoEvent = Symbol("表明此对象不监听更改事件");
+    Watcher_1.Parent = Symbol("父对象的代理对象的指针");
+    Watcher_1.SelfName = Symbol("此对象在父对象中的属性名，如果有");
+    Watcher_1.NoProxy = Symbol("表明此对象不需要Proxy化");
+    Watcher_1.NoEvent = Symbol("表明此对象不监听更改事件");
+    /**
+     *
+     * @param obj 打印的对象
+     */
     function printChain(obj) {
         //获得parent对象并打印parent对象的信息
-        let parent = obj[Parent];
+        let parent = obj[Watcher_1.Parent];
         if (parent != null)
             printChain(parent);
         //打印自己的信息
@@ -31,13 +35,13 @@ var Watcher;
     }
     function setObject(obj, key, value, noevent = false, noproxy = false) {
         let nobj = value;
-        obj[NoEvent] = noevent;
+        obj[Watcher_1.NoEvent] = noevent;
         if (typeof value == "object")
-            nobj[NoProxy] = noproxy;
+            nobj[Watcher_1.NoProxy] = noproxy;
         obj[key] = nobj;
-        delete obj[NoEvent];
+        delete obj[Watcher_1.NoEvent];
         if (typeof value == "object")
-            delete nobj[NoProxy];
+            delete nobj[Watcher_1.NoProxy];
     }
     function getPathPtr(obj, path, ensure = false, noevent = false, noproxy = false) {
         let arr = path.split("/").slice(1);
@@ -76,9 +80,9 @@ var Watcher;
     function getTopAndPath(obj) {
         let nowpath = "";
         let now = obj;
-        while (now[Parent] != null) {
-            nowpath = `/${now[SelfName]}${nowpath}`;
-            now = now[Parent];
+        while (now[Watcher_1.Parent] != null) {
+            nowpath = `/${now[Watcher_1.SelfName]}${nowpath}`;
+            now = now[Watcher_1.Parent];
         }
         if (nowpath == "")
             nowpath = "/";
@@ -112,7 +116,7 @@ var Watcher;
             let pobj = {
                 set(target, p, value, receiver) {
                     //只要有属性更改就加个代理
-                    if (p == NoProxy && p == NoEvent) {
+                    if (p == Watcher_1.NoProxy && p == Watcher_1.NoEvent) {
                         target[p] = value;
                         return true;
                     }
@@ -122,7 +126,7 @@ var Watcher;
                         return true;
                     }
                     let old = target[p];
-                    if (typeof value == 'object' && value[NoProxy] != true) {
+                    if (typeof value == 'object' && value[Watcher_1.NoProxy] != true) {
                         //如果此处在修改一个对象的parent，则会导致parent对象被加上Proxy
                         //这使得Parent对象本身的更改也会被此对象监听(重复设置Proxy)
                         //同时下面的代码设置Parent的Parent指针指向此对象导致“循环指向” 出错
@@ -136,14 +140,14 @@ var Watcher;
                         //故parent不通过代理
                         //value为receiver表示parent指向的是Parent的Proxy对象,因此对其parent的操作
                         //也会被监视
-                        Object.defineProperty(value, Parent, {
+                        Object.defineProperty(value, Watcher_1.Parent, {
                             value: receiver,
                             enumerable: false,
                             writable: false,
                             configurable: false
                         });
                         //记录此对象在父对象中的属性名
-                        Object.defineProperty(value, SelfName, {
+                        Object.defineProperty(value, Watcher_1.SelfName, {
                             value: p,
                             enumerable: false,
                             writable: false,
@@ -153,7 +157,7 @@ var Watcher;
                     else {
                         target[p] = value;
                     }
-                    if (_this.isListen && target[NoEvent] != true) {
+                    if (_this.isListen && target[Watcher_1.NoEvent] != true) {
                         // printChain(target);
                         //通知
                         _this.Changed(receiver, {
@@ -170,8 +174,8 @@ var Watcher;
         Changed(obj, target, targetPath) {
             this.Handler({ obj, target, targetPath });
             //如果冒泡且存在父对象才继续递归
-            if (this.isBubble && obj[Parent] != null)
-                this.Changed(obj[Parent], target, `/${String(obj[SelfName])}${targetPath}`);
+            if (this.isBubble && obj[Watcher_1.Parent] != null)
+                this.Changed(obj[Watcher_1.Parent], target, `/${String(obj[Watcher_1.SelfName])}${targetPath}`);
         }
         /**
          * 应该遵循自顶向下逐层赋值的原则
@@ -185,7 +189,7 @@ var Watcher;
             try {
                 let ret = null;
                 //如果父对象不存在 则ret直接为obj的代理
-                obj[NoEvent] = true;
+                obj[Watcher_1.NoEvent] = true;
                 if (parent == null)
                     ret = new Proxy(obj, this.ProxyObject);
                 else {
@@ -200,7 +204,7 @@ var Watcher;
                         this.toProxiedData(obj[key], ret, key);
                 }
                 //为避免触发读取事件 这里直接操作原始对象
-                delete obj[NoEvent];
+                delete obj[Watcher_1.NoEvent];
                 return ret;
             }
             catch (e) {

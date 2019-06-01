@@ -16,6 +16,7 @@ interface PageFuncPars
     window:Window;
     document:Document;
     msghub:MessageClient;
+    d3:d3.Selection<HTMLElement,{},null,undefined>;
 }
 type PageFunc=(pars:PageFuncPars)=>Promise<void>;
 //组件化基本程序
@@ -121,17 +122,18 @@ async function loadPage(root:HTMLElement,text,script,modsign:string,name="*",pro
             $:jqfunc,
             window:pwindow,
             document:pdocument,
-            msghub:client
+            msghub:client,
+            d3:d3.select(root)
         };
         //执行代码
-        let evalfunc=({$,window,document,msghub})=>{
+        let evalfunc=({$,window,document,msghub,d3})=>{
             eval(script);
         };
         evalfunc(pars);
         //处理后续操作（触发各种事件等）
         //调用onload
         setTimeout((()=>{
-            let {$,window,document,msghub}=pars;
+            let {$,window,document,msghub,d3}=pars;
             window_proxy.onload&&window_proxy.onload();
         }),0);
     },0);

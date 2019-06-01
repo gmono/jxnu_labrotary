@@ -14150,6 +14150,12 @@ exports.writeAsync = fsToAsync(fs.writeFile);
 //# sourceMappingURL=async_node.js.map
 });
 
+;require.register("header.js", function(exports, require, module) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+//# sourceMappingURL=header.js.map
+});
+
 ;require.register("lib.js", function(exports, require, module) {
 //# sourceMappingURL=lib.js.map
 });

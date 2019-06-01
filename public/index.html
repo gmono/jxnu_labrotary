@@ -9,12 +9,16 @@
     <script src="./bower_components/jquery/dist/jquery.js"></script>
     <script src="./bower_components/jquery-migrate/jquery-migrate.js"></script>
     <script src="./bower_components/jquery.stellar/jquery.stellar.js"></script>
+    <script src="./bower_components/d3/d3.js"></script>
     <script src="app.js"></script>
     <script>
         require("loader");
     </script>
 </head>
 <body>
+        <svg>
+                <circle r="100"></circle>
+            </svg>
     
     <div>
         
@@ -28,15 +32,20 @@
         <div id="last" data-stellar-ratio="1.2" style="position: absolute;;padding-top: 200px;">
 
         </div>
+    
     <script src="./tools.js"></script>
     <script src="./MessageCore.js"></script>
     <script src="./Watcher.js"></script>
-    <script src="./test.js">
+    <script src="./comp_loader.js">
     </script>
+    <script src="./index.js"></script>
     <script>
         loadFile($("#last")[0],"./page2.html");
         loadFile($("#anpage1")[0],"./page1.html");
         loadFile($("#anpage2")[0],"./page1.html");
+    </script>
+    <script>
+        
     </script>
 </body>
 </html>
