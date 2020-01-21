@@ -22,7 +22,7 @@ namespace Watcher
     export const NoProxy=Symbol("表明此对象不需要Proxy化");
     export const NoEvent=Symbol("表明此对象不监听更改事件");
     /**
-     * 
+     * 辅助函数，用于打印一个对象相对top对象的path 前提是这个top对象必须是被代理的
      * @param obj 打印的对象
      */
     function printChain(obj:any)
@@ -33,7 +33,21 @@ namespace Watcher
         //打印自己的信息
         console.log(obj);
     }
+    /**
+     * 监听回调函数
+     */
     export type WatchHandler=(pars:ChangeObject)=>void;
+
+
+    ///基本读写函数区域
+    /**
+     * 进行自定义的属性设置，允许对proxy行为进行控制
+     * @param obj 要设置属性的对象
+     * @param key 属性名
+     * @param value 属性值
+     * @param noevent 是否不触发事件
+     * @param noproxy 是否不进行递归代理（针对新设置的属性）
+     */
     function setObject(obj:Object,key:PropertyKey,value:any,noevent=false,noproxy=false)
     {
         let nobj=value;
@@ -43,6 +57,14 @@ namespace Watcher
         delete obj[NoEvent];
         if(typeof value=="object") delete nobj[NoProxy];
     }
+    /**
+     * 
+     * @param obj 要获取属性的对象
+     * @param path 路径
+     * @param ensure 当path指定的属性不存在时是否进行ensure操作，即创建一个新属性   
+     * @param noevent 是否触发修改事件 
+     * @param noproxy 是否需要对新属性进行递归代理
+     */
     function getPathPtr(obj:any,path:string,ensure:boolean=false,noevent=false,noproxy=false)
     {
         let arr=path.split("/").slice(1);
@@ -60,9 +82,16 @@ namespace Watcher
         }
         return {obj:now,prop};
     }
-    //确认存在
+    /////结束
+
+    //确认path存在 如果不存在抛出错误
     export let ensuerPathExists=(obj:any,path:string)=>{getPathPtr(obj,path);}
-    //根据path访问对象
+
+
+
+
+    ///应用读写函数
+    //根据path设置属性
     export function setProp(obj:any,path:string,value:any,force:boolean=false,noevent=false,noproxy=false)
     {
         let res=getPathPtr(obj,path,force,noevent,noproxy);
@@ -70,12 +99,22 @@ namespace Watcher
         //返回的是有Proxy的对象或值
         return res.obj[res.prop];
     }
+    /**
+     * 根据path获取属性
+     * @param obj 获取属性
+     * @param path 路径
+     */
     export function getProp(obj:any,path:string)
     {
         if(path=="/") return obj;
         let res=getPathPtr(obj,path);
         return res.obj[res.prop];
     }
+    ///查询函数
+    /**
+     * 分析对象，得到其top对象和相对于top对象的path
+     * @param obj 要分析的对象
+     */
     export function getTopAndPath(obj:any)
     {
         let nowpath="";
@@ -98,6 +137,9 @@ namespace Watcher
         return getTopAndPath(obj).nowpath;   
     }
 
+
+
+    
     ///数据结构声明
     export interface ChangeInfo
     {
@@ -119,7 +161,9 @@ namespace Watcher
     {
         Changed(pars:ChangeObject):any;
     }
+    //正文开始
     /**
+     * 正文开始
      * 使用方法 let obj=new Watcher(handler).toProxiedData(obj);
      */
     export class Watcher

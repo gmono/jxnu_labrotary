@@ -63,9 +63,9 @@ posthtml 添加了附加的api用于复杂功能
 
 ## 目录结构
 
-1. app保存加载器等需要node支持的库
+1. app保存加载器等需要node支持的库，其最终会被编译为app.js文件到public目录中
 2. public保存测试网页，test.ts（loadPage）等纯浏览器端的库（避免重编译）
-
+3. public目录中的ts文件无模块化（因为无法在浏览器端模块化）
 ## 测试方法
 在public目录里执行一个静态文件服务器，例如python -m http.server
 
@@ -73,3 +73,6 @@ posthtml 添加了附加的api用于复杂功能
 app.js为一次编译而成，使用brunch 编译后不再改动，运行不需要node环境，app目录依赖通过yarn管理
 public目录中的依赖由bower管理，例如jquery等给前端用的库
 在执行yarn后可能需要注释postcss中的require("fs")或 require("path")的行
+
+## 后期规划
+考虑把浏览器程序分开使用amd模块，通过两个tsconfig管理
