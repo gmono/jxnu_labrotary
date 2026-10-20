@@ -1,6 +1,9 @@
 
+import JSON5 from "json5";
+declare const d3: any;
+
 let core=new MessageHub();
-if(window.core!=null) core=window.core;
+if(window.core!=null&&typeof window.core.register==="function") core=window.core;
 //jq函数声明
 // type JQFunc<TElement=HTMLElement>=(selector_elements_selection_function:
 //     JQuery.Selector |
@@ -17,6 +20,7 @@ interface PageFuncPars
     document:Document;
     msghub:MessageClient;
     d3:typeof d3;
+    props:Record<string,any>;
 }
 type PageFunc=(pars:PageFuncPars)=>Promise<void>;
 //组件化基本程序
@@ -151,16 +155,21 @@ async function loadPage(root:HTMLElement,text,script,modsign:string,name="*",pro
         //页面主函数参数
         //这里jq和document创建节点时放上sign
         let client=new MessageClient(core,modsign,name);
-        core.register(client);
+        if(!core.register(client)){
+            modsign=`${modsign}-${Math.random().toString(36).slice(2,8)}`;
+            client=new MessageClient(core,modsign,name);
+            core.register(client);
+        }
         let pars:PageFuncPars={
             $:jqfunc,
             window:pwindow,
             document:pdocument,
             msghub:client,
-            d3:d3proxy
+            d3:d3proxy,
+            props
         };
         //执行代码
-        let evalfunc=({$,window,document,msghub,d3})=>{
+        let evalfunc=({$,window,document,msghub,d3,props})=>{
             eval(script);
         };
         evalfunc(pars);
@@ -175,7 +184,10 @@ async function loadPage(root:HTMLElement,text,script,modsign:string,name="*",pro
 //得到容器
 function getContainer(root)
 {
+    const existing=root.querySelector(":scope > [data-jxnu-container]");
+    if(existing) return existing as HTMLElement;
     let cont=document.createElement("div");
+    cont.setAttribute("data-jxnu-container","");
     cont.style.position="relative";
     cont.style.height=cont.style.width="100%";
 
@@ -183,32 +195,47 @@ function getContainer(root)
     return cont;
 }
 
+function resolveComponentUrl(src:string,baseUrl:string){
+    return new URL(src,baseUrl).href;
+}
+
+window.componentLoader={resolveComponentUrl,getContainer};
+
 
 
 
 //自定义的组件加载
-function getTrans(baseurl:string=new URL(window.location.href).pathname){
+function getTrans(baseurl:string){
     let compsum=0;
     let compontentTrans=(modsign:string,text:string)=>async (tree:PostHTMLTree)=>{
         window.treeapis.ApiSet(tree,"first");
+        try {
+        await tree.match([{tag:"link"},{tag:"script"}],(p)=>{
+            if(typeof p==="string"||!p.attrs) return p;
+            if(p.tag==="link"&&p.attrs.rel==="stylesheet"&&p.attrs.href)
+                p.attrs.href=resolveComponentUrl(String(p.attrs.href),baseurl);
+            if(p.tag==="script"&&p.attrs.src)
+                p.attrs.src=resolveComponentUrl(String(p.attrs.src),baseurl);
+            return p;
+        });
         await tree.match({tag:"component"},(p)=>{
             if(typeof p=="string") return p;
-            let src=p.attrs["src"];
-            //执行代码得到对象
-            let propscode="{}";
-            if("props" in p.attrs) propscode=p.attrs["props"];
-            src=join(baseurl,src);
-            console.log(src);
+            const src=resolveComponentUrl(String(p.attrs["src"]??""),baseurl);
+            const props=p.attrs["props"]??"{}";
+            const propsJson=(JSON.stringify(JSON5.parse(String(props))??{})??"{}").replace(/</g,"\\u003c");
+            const srcJson=JSON.stringify(src).replace(/</g,"\\u003c");
             p.tag="div";
+            if(!p.attrs||Array.isArray(p.attrs)) p.attrs={};
             p.attrs["id"]=`__component__${compsum}`;
             let script=<PostHTMLNode>{
                 tag:"script",
                 attrs:[],
-                content:[`loadFile(document.getElementById("__component__${compsum}"),"${src}",${propscode});`]
+                content:[`loadFile(document.getElementById(${JSON.stringify(`__component__${compsum}`)}),${srcJson},${propsJson});`]
             }
             compsum++;
             return [p,script];
         })
+        } finally { window.treeapis.ApiReset(tree); }
     };
     return compontentTrans;
 }
@@ -219,20 +246,30 @@ function getTrans(baseurl:string=new URL(window.location.href).pathname){
  * @param props 组件属性对象（在组件内以props引用）
  * @param mdsign 自定义组件标识，用于纯粹内容加载时提供相同的sign或者对特殊部件提供特定的sign做id
  */
-async function loadFile(root:HTMLElement,url,props={},mdsign=null)
+async function loadFile(root:HTMLElement,url:string,props={},mdsign:string|null=null)
 {
     //处理root 取得相对容器
     root=getContainer(root);
     let ele=root;
-    let res=await fetch(url);
+    const absoluteUrl=new URL(url,document.baseURI).href;
+    try {
+    let res=await fetch(absoluteUrl);
     if(res.ok)
     {
         let text=await res.text();
         //处理
-        let {html,script,modsign}=await (mdsign==null? window.pack(text,[getTrans()]):window.pack(text,[getTrans()],[],mdsign));
+        const baseUrl=new URL(".",absoluteUrl).href;
+        let {html,script,modsign}=await (mdsign==null? window.pack(text,[getTrans(baseUrl)]):window.pack(text,[getTrans(baseUrl)],[],mdsign));
         loadPage(ele,html,script,modsign,url,props);
         return modsign;
     }
     return null;
+    }catch(error){
+        console.error(`组件加载失败: ${absoluteUrl}`,error);
+        root.textContent=`组件加载失败: ${url}`;
+        return null;
+    }
 
 }
+
+window.loadFile=loadFile;

@@ -15,16 +15,11 @@ function Api () {
   this.match = match
 }
 
-let rawMatch=null;
-let rawWalk=null;
+const treeState = new WeakMap<PostHTMLTree, { match: PostHTMLTree["match"]; walk: PostHTMLTree["walk"]; traverse: typeof traverse_first }>();
 
-/**用来切换方式 */
-let traverse=traverse_first;
-//记录原始的函数
 export function ApiRecord(tree:PostHTMLTree)
 {
-  rawMatch=tree.match;
-  rawWalk=tree.walk;
+  if (!treeState.has(tree)) treeState.set(tree, { match: tree.match, walk: tree.walk, traverse: traverse_first });
 }
 const mapMethods={
   first:traverse_first,
@@ -39,15 +34,19 @@ export type TraverseMethod="first"|"layer"|"last";
  */
 export function ApiSet(tree:PostHTMLTree,traverse_method:TraverseMethod="first")
 {
+    const state = treeState.get(tree);
+    if (!state) throw new Error("PostHTML tree must be recorded before replacing its API");
     tree.match=match;
     tree.walk=walk;
-    traverse=mapMethods[traverse_method];
+    state.traverse=mapMethods[traverse_method];
 }
 
 export function ApiReset(tree:PostHTMLTree)
 {
-  tree.walk=rawWalk;
-  tree.match=rawMatch;
+  const state=treeState.get(tree);
+  if (!state) return;
+  tree.walk=state.walk;
+  tree.match=state.match;
 }
 
 /**
@@ -71,7 +70,7 @@ export function ApiReset(tree:PostHTMLTree)
  * ```
  */
 async function walk (cb) {
-  return await traverse(this, cb)
+  return await (treeState.get(this)?.traverse ?? traverse_first)(this, cb)
 }
 
 /**
@@ -114,6 +113,7 @@ async function walk (cb) {
  * ```
  */
 async function match (expression, cb) {
+  const traverse=treeState.get(this)?.traverse ?? traverse_first;
   return Array.isArray(expression)
     ? await traverse(this, function (node) {
       for (var i = 0; i < expression.length; i++) {
@@ -158,7 +158,7 @@ async function traverse_first (tree, cb) {
       //此处判断是否数组 数组则表示使用一系列node|string替换那一位置的node
       //如果res为数组 则直接处理原数组（否则处理原节点。的content）
       //此处为深度优先遍历
-      let ret=await traverse(res, cb)
+      let ret=await traverse_first(res, cb)
       if(Array.isArray(ret))
       {
         //原位替换
@@ -172,7 +172,7 @@ async function traverse_first (tree, cb) {
       tree &&
       typeof tree === 'object' &&
       tree.hasOwnProperty('content')
-  ) await traverse(tree.content, cb)
+  ) await traverse_first(tree.content, cb)
 
   return tree
 }
@@ -187,7 +187,7 @@ async function traverse_last (tree, cb) {
     for(var i = 0; i < tree.length; i++) 
     {
       //后续遍历 先处理tree[i]的content 此处返回处理过的tree[i]
-      let ret=await traverse(tree[i], cb)
+      let ret=await traverse_last(tree[i], cb)
       //使用回调函数处理 已经处理过content的node
       let res=cb(ret);
       if(isPromise(res)) res=await res;
@@ -204,7 +204,7 @@ async function traverse_last (tree, cb) {
       tree &&
       typeof tree === 'object' &&
       tree.hasOwnProperty('content')
-  ) await traverse(tree.content, cb)
+  ) await traverse_last(tree.content, cb)
 
   return tree
 }
@@ -240,14 +240,14 @@ async function traverse_layers (tree, cb) {
     for(let node of tree)
     {
       //处理每个新生成的这层的节点的下一层
-      await traverse(node,cb);
+      await traverse_layers(node,cb);
     }
 
   } else if (
       tree &&
       typeof tree === 'object' &&
       tree.hasOwnProperty('content')
-  ) await traverse(tree.content, cb)
+  ) await traverse_layers(tree.content, cb)
 
   return tree
 }

@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "Bundler",
+    "moduleDetection": "legacy",
+    "lib": ["ES2022", "DOM"],
+    "types": ["jquery", "d3"],
+    "sourceMap": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "noEmit": false,
+    "rootDir": ".",
+    "outDir": ".build/browser"
+  },
+  "files": [
+    "app/lib.ts",
+    "public/MessageCore.ts",
+    "public/Watcher.ts",
+    "public/tools.ts",
+    "public/comp_loader.ts",
+    "public/index.ts"
+  ]
+}

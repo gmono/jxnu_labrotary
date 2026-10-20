@@ -25,11 +25,18 @@
 9. 不需要使用固定的套件比如Webpack，Brunch等进行项目构建，不需要使用Node.js作为基础和依赖管理（但可能用于工具的编写），用户不需要通过统一的格式和流程例如在package.json中注册包，或在配置文件中注册插件等做扩展
 10. 即写即运行，宁愿浏览器处理编译，也不进行本地编译，浪费时间，不使用gulp等固定的task工具，避免任何框架化操作
 ## 工具链
-本实验统一使用brunch工具链 需要使用node提供的库的部分写在app目录，修改后使用brunch build 一次性编译即可（自动输出为public目录的app.js文件）
+项目使用 pnpm 管理依赖，Node.js 24 及以上版本。TypeScript 检查 Node 工具代码和浏览器代码，esbuild 将浏览器加载器与组件加载器打包为可直接由页面引用的脚本。
 
-**本产品使用typescript编写 请勿手动修改js文件**
+```sh
+pnpm install
+pnpm typecheck
+pnpm test
+pnpm start
+```
+
+演示页默认地址为 `http://localhost:8080/`。TypeScript 是源码，`public/*.js` 是构建生成物，不要直接修改生成文件。
 ## 设计和进度
-当前进度：测试JQ插件基本可用 插件中没有使用JQ，但使用了window.onload和document的创建节点等功能 目前工作正常 域封闭性正常 CSS封闭性正常 JS作用域封闭基本正常其他有待测试
+当前可以运行的原型包含 HTML 打包、外部 CSS/JS 内联、CSS 选择器作用域、声明式 `<component>` 加载、嵌套相对 URL、组件 props、组件消息 hub 和对象变更 Watcher。它仍是实验原型，不能视为已完成的产品级隔离或浏览器兼容层。
 
 ## 目前工作重点
 1. 编写需要代理的Document的Proxy对象和Window的Proxy对象,设法将代理对象从loadPage函数中分离出来
@@ -67,12 +74,20 @@ posthtml 添加了附加的api用于复杂功能
 2. public保存测试网页，test.ts（loadPage）等纯浏览器端的库（避免重编译）
 3. public目录中的ts文件无模块化（因为无法在浏览器端模块化）
 ## 测试方法
-在public目录里执行一个静态文件服务器，例如python -m http.server
+`pnpm test` 会先构建，再运行消息路由、Watcher、打包并发、CSS scope 和组件加载回归测试。`pnpm start` 启动本地静态服务器。
 
-## 依赖管理
-app.js为一次编译而成，使用brunch 编译后不再改动，运行不需要node环境，app目录依赖通过yarn管理
-public目录中的依赖由bower管理，例如jquery等给前端用的库
-在执行yarn后可能需要注释postcss中的require("fs")或 require("path")的行
+## 尚未实现
+
+以下是旧 README 中记录的设想，目前没有实现或没有完成端到端验证：
+
+- 自动生成 ID/class 节点引用与编辑器语法提示。
+- 容器型 slot、功能型 slot 和 feature/modsign 一致化。
+- 组件公开属性/函数接口及接口分组调用。
+- 锚点路由、target 分发、声明式数据 Store、服务端自动同步与 mock 数据。
+- Window/Document 代理的完整安全边界及低版本浏览器、Proxy polyfill 验证。
+- 非隔离全局库与组件 CSS 混用时的冲突策略。
+
+这些内容需要分别设计并补充契约与集成测试，当前版本没有将它们标记为完成。
 
 ## 后期规划
 考虑把浏览器程序分开使用amd模块，通过两个tsconfig管理

@@ -5,10 +5,12 @@ type RareMiddleWareFactor=(modsign:string,html:string,script:{allscripts:string}
 declare interface Window
 {
     pack(str:string,pre_middleware?:Array<PreMiddleWareFactor>,rare_middleware?:Array<RareMiddleWareFactor>,modsign?:string):Promise<{html:string,script:string,modsign:string}>;
-    parser(html:string):Promise<PostHTMLNode[]>;
+    parser(html:string):PostHTMLNode[];
     render(ast:PostHTMLNode[]):string;
     posthtml:PostHtmlModule;
     treeapis:{ApiSet:(tree: any, traverse_method?: any) => void,ApiReset:(tree: any) => void};
+    componentLoader:{resolveComponentUrl:(src:string,baseUrl:string)=>string,getContainer:(root:HTMLElement)=>HTMLElement};
+    loadFile:(root:HTMLElement,url:string,props?:object,mdsign?:string|null)=>Promise<string|null>;
     core:MessageHub;
 }
 
@@ -34,7 +36,7 @@ declare interface PostHTMLResult
 declare interface PostHTMLNode
 {
     tag:string;
-    attrs?:object;
+    attrs?:Record<string, any>;
     content?:Array<PostHTMLTreeNode>;
 }
 //回调函数返回 同步或异步

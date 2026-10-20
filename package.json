@@ -2,9 +2,21 @@
   "name": "jxnu_labrotary",
   "version": "1.0.0",
   "description": "江西师范大学工具集/顺便探索新的简易开发原型网站的方法",
-  "main": "app.js",
+  "main": "public/app.js",
+  "packageManager": "pnpm@10.27.0",
+  "engines": {
+    "node": ">=24.12.0"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "clean": "node -e \"const fs=require('node:fs'); for(const p of ['dist','.build','public/app','public/public']) fs.rmSync(p,{recursive:true,force:true})\"",
+    "build:node": "pnpm clean && tsc -p tsconfig.json",
+    "build:browser-loader": "esbuild app/loader.ts --bundle --platform=browser --format=iife --target=es2022 --outfile=public/app.js",
+    "build:browser-pages": "tsc -p tsconfig.browser.json && node scripts/copy-browser-pages.cjs && esbuild public/comp_loader.ts --bundle --platform=browser --format=iife --target=es2022 --log-override:direct-eval=silent --outfile=public/comp_loader.js",
+    "build": "pnpm build:node && pnpm build:browser-loader && pnpm build:browser-pages",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.browser.json --noEmit",
+    "test": "pnpm build && node --test --test-concurrency=1 tests/*.test.cjs",
+    "serve": "node scripts/serve.cjs",
+    "start": "pnpm serve"
   },
   "repository": {
     "type": "git",
@@ -13,20 +25,19 @@
   "author": "gmono",
   "license": "GPL-3.0",
   "dependencies": {
-    "@types/d3": "^5.7.2",
-    "@types/jquery": "^3.3.29",
-    "@types/node": "^12.0.0",
-    "brunch": "^2.10.17",
-    "postcss": "^7.0.14",
-    "posthtml": "^0.11.3",
-    "posthtml-collect-inline-styles": "^0.0.1",
-    "posthtml-include": "^1.2.0",
-    "posthtml-inline-css": "^1.2.3",
-    "posthtml-parser": "^0.4.1",
-    "posthtml-render": "^1.1.4",
-    "posthtml-to-svg-tags": "^0.0.0"
+    "json5": "^2.2.3",
+    "postcss": "^8.5.31",
+    "postcss-selector-parser": "^7.1.6",
+    "posthtml": "^0.16.7",
+    "posthtml-parser": "^0.12.1",
+    "posthtml-render": "^3.0.0"
   },
   "devDependencies": {
-    "webpack-cli": "^3.3.10"
+    "@types/d3": "^7.4.3",
+    "@types/jquery": "^4.0.1",
+    "@types/node": "^26.6.5",
+    "esbuild": "^0.28.2",
+    "happy-dom": "^21.0.3",
+    "typescript": "^7.0.2"
   }
 }

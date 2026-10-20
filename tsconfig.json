@@ -1,14 +1,19 @@
 {
   "compilerOptions": {
-    "target": "esnext",                          
-    "module": "commonjs",                    
-    "lib": ["dom","es2015"],                          
-    "allowJs": true,                                            
+    "target": "ES2022",
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "moduleDetection": "legacy",
+    "lib": ["ES2022", "DOM"],
+    "types": ["node", "jquery", "d3"],
+    "rootDir": ".",
+    "outDir": "dist",
+    "sourceMap": true,
+    "skipLibCheck": true,
     "strict": false,
-    "noLib": false,
-    "watch": true,
-    "downlevelIteration": false,
-    "sourceMap":true,
-    "pretty": true
-  }
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true
+  },
+  "include": ["app.ts", "app/**/*.ts", "app/lib.ts", "public/MessageCore.ts"],
+  "exclude": ["node_modules", "dist"]
 }

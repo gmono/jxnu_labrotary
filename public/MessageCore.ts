@@ -1,11 +1,18 @@
 class EventHub<P>
 {
-    public cbks=[];
+    private cbks:Array<(pars:P)=>void>=[];
     /**
      * register
      */
-    public register(cbk:(pars:P)=>void) {
+    public register(cbk:(pars:P)=>void):()=>void {
         this.cbks.push(cbk);
+        return ()=>this.unregister(cbk);
+    }
+    public unregister(cbk:(pars:P)=>void){
+        this.cbks=this.cbks.filter(registered=>registered!==cbk);
+    }
+    public clear(){
+        this.cbks=[];
     }
     public send(pars:P)
     {
@@ -39,10 +46,13 @@ class MessageHub
     }
     public send(id:string,selfid:string,obj:any)
     {
-        this.getClient(id).Source.send({
+        const client=this.getClient(id);
+        if(!client) return false;
+        client.Source.send({
             sender:selfid,
             typeid:"custom",
             data:obj});
+        return true;
     }
     public getClient(id:string)
     {
@@ -51,10 +61,19 @@ class MessageHub
     }
     public register(client:MessageClient)
     {
-        client.Core=this;
         if(client.id in this.id_map) return false;
+        client.Core=this;
         this.id_lst.push(client.id);
         this.id_map[client.id]=client;
+        return true;
+    }
+    public unregister(id:string){
+        const client=this.getClient(id);
+        if(!client) return false;
+        client.Source.clear();
+        delete this.id_map[id];
+        this.id_lst=this.id_lst.filter(clientId=>clientId!==id);
+        return true;
     }
 }
 
@@ -143,5 +162,9 @@ class MessageClient
      * 事件Hub 允许组件监听事件
      */
     public Source:EventHub<Message>=new EventHub<Message>();
+
+    public dispose(){
+        return this.core.unregister(this.id);
+    }
     
 }

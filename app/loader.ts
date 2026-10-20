@@ -1,11 +1,12 @@
-import * as posthtml from "posthtml";
-import * as parser from "posthtml-parser";
-import * as render from "posthtml-render";
+import posthtml = require("posthtml");
+import { parser } from "posthtml-parser";
+import { render } from "posthtml-render";
 
-let html=posthtml as PostHtmlModule;
+let html=posthtml as unknown as PostHtmlModule;
 const getRandomStr=()=>Math.random().toString(36).substr(2);
 import { ApiSet, ApiReset, ApiRecord } from './posthtml_api';
-import * as postcss from "postcss";
+import postcss from "postcss";
+import selectorParser from "postcss-selector-parser";
 function isBrowser(){
     try
     {
@@ -40,7 +41,8 @@ async function loadTxt(url)
     }
     else
     {
-        let fs=require("./async_node");
+        const loadNodeFs=new Function("return import('./async_node.js')") as ()=>Promise<typeof import("./async_node")>;
+        let fs=await loadNodeFs();
         let txt=await fs.readAsync(url,"utf-8");
         return txt;
     }
@@ -50,12 +52,8 @@ function deleteContainer(expression:PostHTMLNode|PostHTMLNode[])
     //删除容器释放内容物
     return async (tree:PostHTMLTree)=>{
         ApiSet(tree,"last");
-        await tree.match(expression,(p)=>{
-            if(typeof p=="object")
-                return p.content;
-            else return p;
-        })
-        ApiReset(tree);
+        try { await tree.match(expression,(p)=>typeof p==="object" ? p.content : p); }
+        finally { ApiReset(tree); }
     }
 }
 function deleteElement(expression:PostHTMLNode|PostHTMLNode[])
@@ -63,17 +61,15 @@ function deleteElement(expression:PostHTMLNode|PostHTMLNode[])
     //直接删除节点
     return async (tree:PostHTMLTree)=>{
         ApiSet(tree,"last");
-        await tree.match(expression,(p)=>{
-            if(typeof p=="string") return p;
-            else return [];
-        })
-        ApiReset(tree);
+        try { await tree.match(expression,(p)=>typeof p==="string" ? p : []); }
+        finally { ApiReset(tree); }
     }
 }
 function getSignCssFunc(sign:string){
     const signCss=async (tree:PostHTMLTree)=>{
         //处理所有style标签内的css
         ApiSet(tree);
+        try {
         let modsign=sign;
         await tree.match({tag:"style"},async (p)=>{
             if(typeof p=="string") return p;
@@ -81,49 +77,24 @@ function getSignCssFunc(sign:string){
             let css=await postcss().use((root)=>{
                 root.walkRules((selector,idx)=>{
                     //处理css选择器
-                    selector.selectors=selector.selectors.map((value,idx)=>{
-                        if(value=="nav li:hover")
-                        {
-                            console.log("cut");
-                        }
-                        //在这里处理每个selector
-                        //设法跳过伪类和伪元素
-                        let state=0; //0-冒号->1-其他字符->位置  1-冒号->2-其他字符->位置 找不到则将位置设为最后
-                        //状态机
-                        let tarnslist={};
-                        let dotrans=()=>{if(state in tarnslist) state=tarnslist[state];tarnslist={};}
-                        let trans=(f,t)=>{if(!(f in tarnslist)) tarnslist[f]=t;};
-                        let destidx=-1;
-                        for(let i=value.length-1;i>=0;--i){
-                            //搜索最后一个冒号或双冒号
-                            let char=value[i];
-                            if(char==":") {
-                                trans(0,1);
-                                trans(1,2);
-                                dotrans();
-                            }
-                            else if(state!=0)
-                            {
-                                //其他字符 只要不是0 则表示此位置在目标位置前面一位
-                                destidx=i+1;
-                                break;
-                            }
-                        }
-                        if(value.substr(0,destidx)=="n"){
-                            console.log(value);
-                        }
-                        //在末尾添加
-                        if(destidx==-1) return `${value}[data-sign="${modsign}"]`;
-                        //在最后的冒号或双冒号前面添加
-                        else return `${value.substr(0,destidx)}[data-sign="${modsign}"]${value.substr(destidx)}`;
-                    });
+                    selector.selectors=selector.selectors.map((value)=>selectorParser((selectors)=>{
+                        selectors.each((item)=>{
+                            const lastCombinator=item.nodes.reduce((last,node,index)=>node.type==="combinator"?index:last,-1);
+                            const compound=item.nodes.slice(lastCombinator+1);
+                            if(compound.some((node)=>node.type==="attribute"&&node.attribute==="data-sign")) return;
+                            const firstPseudo=compound.find((node)=>node.type==="pseudo");
+                            const scope=selectorParser.attribute({attribute:"data-sign",operator:"=",value:modsign,quoteMark:'"',raws:{value:modsign}});
+                            if(firstPseudo) item.insertBefore(firstPseudo,scope);
+                            else item.append(scope);
+                        });
+                    }).processSync(value));
                     return selector;
                 })
-            }).process(p.content).css;
+            }).process((p.content ?? []).join(""),{from:undefined}).css;
             p.content=[css];
             return p;
         });
-        ApiReset(tree);
+        } finally { ApiReset(tree); }
     }
     return signCss;
 }
@@ -145,19 +116,18 @@ function getGatcherOfScripts(){
         //并删除标签
         ApiSet(tree,"last");
         let allscripts="";
-        await tree.match({tag:"script"},(p)=>{
+        try { await tree.match({tag:"script"},(p)=>{
             //得到代码
             if(typeof p=="string") return p;
             //提示专用的script引入
-            if("declare" in p.attrs) return [];
-            let script=p.content.join("");
+            if(p.attrs && "declare" in p.attrs) return [];
+            let script=(p.content ?? []).join("");
             allscripts+="\n"+script;
             //清除script标签
             return [];
-        });
+        }); } finally { ApiReset(tree); }
         //保存到容器
         scriptContainer.allscripts=allscripts;
-        ApiReset(tree);
     }
     return {scriptContainer,gatherScripts};
 }
@@ -182,10 +152,11 @@ async function pack(str:string,pre_middleware:Array<PreMiddleWareFactor>=[],rare
     })
     .use(async (tree)=>{
         ApiSet(tree);
+        try {
         //将所有的link进来的css文件都加载到内置标签中
         await tree.match({tag:"link"},async (p)=>{
             if(typeof p=="string") return p;
-            if("rel" in p.attrs&&p.attrs["rel"]=="stylesheet")
+            if(p.attrs && "rel" in p.attrs&&p.attrs["rel"]=="stylesheet")
             {
                 let href=p.attrs["href"];
                 //加载链接内容
@@ -199,13 +170,14 @@ async function pack(str:string,pre_middleware:Array<PreMiddleWareFactor>=[],rare
             }
             return p;
         });
-        ApiReset(tree);
+        } finally { ApiReset(tree); }
     }).use(async (tree)=>{
         //把所有外部script引入内部
         ApiSet(tree);
+        try {
         await tree.match({tag:"script"},async (p)=>{
             if(typeof p=="string") return p;
-            if("src" in p.attrs)
+            if(p.attrs && "src" in p.attrs)
             {
                 let src=p.attrs["src"];
                 let txt=await loadTxt(src) as string;
@@ -217,7 +189,7 @@ async function pack(str:string,pre_middleware:Array<PreMiddleWareFactor>=[],rare
             }
             return p;
         })
-        ApiReset(tree);
+        } finally { ApiReset(tree); }
     })
     .use(deleteContainer([{tag:"html"},{tag:"body"},{tag:"head"}]))
     .use(deleteElement([{tag:"meta"},{tag:"title"}]))
@@ -237,8 +209,8 @@ async function pack(str:string,pre_middleware:Array<PreMiddleWareFactor>=[],rare
 };
 
 window.pack=pack;
-window.parser=parser;
-window.render=render;
+window.parser=parser as unknown as Window["parser"];
+window.render=render as unknown as Window["render"];
 window.posthtml=html;
 
 

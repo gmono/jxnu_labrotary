@@ -1,3 +1,4 @@
+"use strict";
 /**
  * 监听器组件相关
  */
@@ -22,7 +23,7 @@ var Watcher;
     Watcher_1.NoProxy = Symbol("表明此对象不需要Proxy化");
     Watcher_1.NoEvent = Symbol("表明此对象不监听更改事件");
     /**
-     *
+     * 辅助函数，用于打印一个对象相对top对象的path 前提是这个top对象必须是被代理的
      * @param obj 打印的对象
      */
     function printChain(obj) {
@@ -33,6 +34,15 @@ var Watcher;
         //打印自己的信息
         console.log(obj);
     }
+    ///基本读写函数区域
+    /**
+     * 进行自定义的属性设置，允许对proxy行为进行控制
+     * @param obj 要设置属性的对象
+     * @param key 属性名
+     * @param value 属性值
+     * @param noevent 是否不触发事件
+     * @param noproxy 是否不进行递归代理（针对新设置的属性）
+     */
     function setObject(obj, key, value, noevent = false, noproxy = false) {
         let nobj = value;
         obj[Watcher_1.NoEvent] = noevent;
@@ -43,6 +53,14 @@ var Watcher;
         if (typeof value == "object")
             delete nobj[Watcher_1.NoProxy];
     }
+    /**
+     *
+     * @param obj 要获取属性的对象
+     * @param path 路径
+     * @param ensure 当path指定的属性不存在时是否进行ensure操作，即创建一个新属性
+     * @param noevent 是否触发修改事件
+     * @param noproxy 是否需要对新属性进行递归代理
+     */
     function getPathPtr(obj, path, ensure = false, noevent = false, noproxy = false) {
         let arr = path.split("/").slice(1);
         let npth = arr.slice(0, -1);
@@ -60,9 +78,11 @@ var Watcher;
         }
         return { obj: now, prop };
     }
-    //确认存在
+    /////结束
+    //确认path存在 如果不存在抛出错误
     Watcher_1.ensuerPathExists = (obj, path) => { getPathPtr(obj, path); };
-    //根据path访问对象
+    ///应用读写函数
+    //根据path设置属性
     function setProp(obj, path, value, force = false, noevent = false, noproxy = false) {
         let res = getPathPtr(obj, path, force, noevent, noproxy);
         setObject(res.obj, res.prop, value, noevent, noproxy);
@@ -70,6 +90,11 @@ var Watcher;
         return res.obj[res.prop];
     }
     Watcher_1.setProp = setProp;
+    /**
+     * 根据path获取属性
+     * @param obj 获取属性
+     * @param path 路径
+     */
     function getProp(obj, path) {
         if (path == "/")
             return obj;
@@ -77,6 +102,11 @@ var Watcher;
         return res.obj[res.prop];
     }
     Watcher_1.getProp = getProp;
+    ///查询函数
+    /**
+     * 分析对象，得到其top对象和相对于top对象的path
+     * @param obj 要分析的对象
+     */
     function getTopAndPath(obj) {
         let nowpath = "";
         let now = obj;
@@ -98,10 +128,25 @@ var Watcher;
         return getTopAndPath(obj).nowpath;
     }
     Watcher_1.getPath = getPath;
+    //正文开始
     /**
+     * 正文开始
      * 使用方法 let obj=new Watcher(handler).toProxiedData(obj);
      */
     class Watcher {
+        Handler;
+        isBubble;
+        //指示是否暂停发出Change事件
+        isListen = true;
+        proxyCache = new WeakMap();
+        processedObjects = new WeakSet();
+        //target中的old和new 都是Proxied对象或值
+        Changed(obj, target, targetPath) {
+            this.Handler({ obj, target, targetPath });
+            //如果冒泡且存在父对象才继续递归
+            if (this.isBubble && obj[Watcher_1.Parent] != null)
+                this.Changed(obj[Watcher_1.Parent], target, `/${String(obj[Watcher_1.SelfName])}${targetPath}`);
+        }
         /**
          * @param Handler 通知函数
          * @param isBubble 是否采用事件冒泡（即下层对象修改后，上层对象会接到通知)
@@ -109,14 +154,11 @@ var Watcher;
         constructor(Handler, isBubble = true) {
             this.Handler = Handler;
             this.isBubble = isBubble;
-            //指示是否暂停发出Change事件
-            this.isListen = true;
-            this.ProxyObject = null;
             let _this = this;
             let pobj = {
                 set(target, p, value, receiver) {
                     //只要有属性更改就加个代理
-                    if (p == Watcher_1.NoProxy && p == Watcher_1.NoEvent) {
+                    if (p === Watcher_1.NoProxy || p === Watcher_1.NoEvent) {
                         target[p] = value;
                         return true;
                     }
@@ -126,33 +168,40 @@ var Watcher;
                         return true;
                     }
                     let old = target[p];
-                    if (typeof value == 'object' && value[Watcher_1.NoProxy] != true) {
+                    if (value !== null && typeof value == 'object' && value[Watcher_1.NoProxy] != true) {
                         //如果此处在修改一个对象的parent，则会导致parent对象被加上Proxy
                         //这使得Parent对象本身的更改也会被此对象监听(重复设置Proxy)
                         //同时下面的代码设置Parent的Parent指针指向此对象导致“循环指向” 出错
                         //因此Parent对象是只读且不可修改的
-                        let childProxy = new Proxy(value, pobj);
-                        target[p] = childProxy;
-                        //在目标对象上记录下parent指针 parent可以为父对象的proxy或直接为对象本身
-                        //在value上记录parent则parent的更改不被监视  否则将形成无限递归
-                        //即在子对象上记录parent时等同于给子对象加了一个属性
-                        //这个属性又需要以子对象为parent 以此类推
-                        //故parent不通过代理
-                        //value为receiver表示parent指向的是Parent的Proxy对象,因此对其parent的操作
-                        //也会被监视
-                        Object.defineProperty(value, Watcher_1.Parent, {
-                            value: receiver,
-                            enumerable: false,
-                            writable: false,
-                            configurable: false
-                        });
-                        //记录此对象在父对象中的属性名
-                        Object.defineProperty(value, Watcher_1.SelfName, {
-                            value: p,
-                            enumerable: false,
-                            writable: false,
-                            configurable: false
-                        });
+                        let childProxy = _this.proxyCache.get(value);
+                        if (childProxy == null) {
+                            childProxy = new Proxy(value, pobj);
+                            _this.proxyCache.set(value, childProxy);
+                            _this.proxyCache.set(childProxy, childProxy);
+                            target[p] = childProxy;
+                            //在目标对象上记录下parent指针 parent可以为父对象的proxy或直接为对象本身
+                            //在value上记录parent则parent的更改不被监视  否则将形成无限递归
+                            //即在子对象上记录parent时等同于给子对象加了一个属性
+                            //这个属性又需要以子对象为parent 以此类推
+                            //故parent不通过代理
+                            //value为receiver表示parent指向的是Parent的Proxy对象,因此对其parent的操作
+                            //也会被监视
+                            Object.defineProperty(value, Watcher_1.Parent, {
+                                value: receiver,
+                                enumerable: false,
+                                writable: false,
+                                configurable: false
+                            });
+                            //记录此对象在父对象中的属性名
+                            Object.defineProperty(value, Watcher_1.SelfName, {
+                                value: p,
+                                enumerable: false,
+                                writable: false,
+                                configurable: false
+                            });
+                        }
+                        else
+                            target[p] = childProxy;
                     }
                     else {
                         target[p] = value;
@@ -166,17 +215,21 @@ var Watcher;
                         }, `/${String(p)}`);
                     }
                     return true;
+                },
+                deleteProperty(target, p) {
+                    if (!Object.prototype.hasOwnProperty.call(target, p))
+                        return true;
+                    const old = target[p];
+                    if (!Reflect.deleteProperty(target, p))
+                        return false;
+                    if (_this.isListen && target[Watcher_1.NoEvent] !== true)
+                        _this.Changed(_this.proxyCache.get(target) ?? target, { old, new: undefined }, `/${String(p)}`);
+                    return true;
                 }
             };
             this.ProxyObject = pobj;
         }
-        //target中的old和new 都是Proxied对象或值
-        Changed(obj, target, targetPath) {
-            this.Handler({ obj, target, targetPath });
-            //如果冒泡且存在父对象才继续递归
-            if (this.isBubble && obj[Watcher_1.Parent] != null)
-                this.Changed(obj[Watcher_1.Parent], target, `/${String(obj[Watcher_1.SelfName])}${targetPath}`);
-        }
+        ProxyObject = null;
         /**
          * 应该遵循自顶向下逐层赋值的原则
          * parent已经是Proxy对象或直接为null
@@ -187,17 +240,26 @@ var Watcher;
          */
         toProxiedData(obj, parent = null, key = "") {
             try {
+                if (obj === null || typeof obj !== "object")
+                    return obj;
                 let ret = null;
                 //如果父对象不存在 则ret直接为obj的代理
                 obj[Watcher_1.NoEvent] = true;
-                if (parent == null)
-                    ret = new Proxy(obj, this.ProxyObject);
+                if (parent == null) {
+                    const existing = this.proxyCache.get(obj);
+                    ret = existing ?? new Proxy(obj, this.ProxyObject);
+                    this.proxyCache.set(obj, ret);
+                    this.proxyCache.set(ret, ret);
+                }
                 else {
                     //赋值给父对象
                     parent[key] = obj;
                     //从父对象中得到处理过的子对象
                     ret = parent[key];
                 }
+                if (this.processedObjects.has(obj))
+                    return ret;
+                this.processedObjects.add(obj);
                 //处理下级对象 转换所有object
                 for (let key in obj) {
                     if (obj[key] != null && typeof obj[key] == "object")

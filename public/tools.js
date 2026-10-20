@@ -1,3 +1,4 @@
+"use strict";
 var CHAR_FORWARD_SLASH = 47;
 var CHAR_BACKWARD_SLASH = 92;
 var CHAR_DOT = 46;

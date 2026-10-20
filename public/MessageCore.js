@@ -1,12 +1,18 @@
+"use strict";
 class EventHub {
-    constructor() {
-        this.cbks = [];
-    }
+    cbks = [];
     /**
      * register
      */
     register(cbk) {
         this.cbks.push(cbk);
+        return () => this.unregister(cbk);
+    }
+    unregister(cbk) {
+        this.cbks = this.cbks.filter(registered => registered !== cbk);
+    }
+    clear() {
+        this.cbks = [];
     }
     send(pars) {
         this.cbks.forEach((v) => {
@@ -18,17 +24,21 @@ class EventHub {
  * 组 id和组件名约定 *代表未知  sys代表系统 其他自定义
  */
 class MessageHub {
+    id_lst = [];
+    //id->MessageClient
+    id_map = {};
     constructor() {
-        this.id_lst = [];
-        //id->MessageClient
-        this.id_map = {};
     }
     send(id, selfid, obj) {
-        this.getClient(id).Source.send({
+        const client = this.getClient(id);
+        if (!client)
+            return false;
+        client.Source.send({
             sender: selfid,
             typeid: "custom",
             data: obj
         });
+        return true;
     }
     getClient(id) {
         if (id in this.id_map)
@@ -36,11 +46,21 @@ class MessageHub {
         return null;
     }
     register(client) {
-        client.Core = this;
         if (client.id in this.id_map)
             return false;
+        client.Core = this;
         this.id_lst.push(client.id);
         this.id_map[client.id] = client;
+        return true;
+    }
+    unregister(id) {
+        const client = this.getClient(id);
+        if (!client)
+            return false;
+        client.Source.clear();
+        delete this.id_map[id];
+        this.id_lst = this.id_lst.filter(clientId => clientId !== id);
+        return true;
     }
 }
 /**
@@ -50,18 +70,18 @@ class MessageHub {
  * 允许客户端获取只读Core对象并使用其与全局交互
  */
 class MessageClient {
+    core;
+    id;
+    componentname;
+    groupid;
     constructor(core, id, componentname = "*", groupid = "*") {
         this.core = core;
         this.id = id;
         this.componentname = componentname;
         this.groupid = groupid;
-        this.sendids = null;
-        /**
-         * 事件Hub 允许组件监听事件
-         */
-        this.Source = new EventHub();
         this.sendids = core.id_lst;
     }
+    sendids = null;
     set Core(value) {
         this.core = value;
         this.sendids = this.core.id_lst;
@@ -121,6 +141,13 @@ class MessageClient {
     }
     exceptSelf() {
         return this.except(this.id);
+    }
+    /**
+     * 事件Hub 允许组件监听事件
+     */
+    Source = new EventHub();
+    dispose() {
+        return this.core.unregister(this.id);
     }
 }
 //# sourceMappingURL=MessageCore.js.map

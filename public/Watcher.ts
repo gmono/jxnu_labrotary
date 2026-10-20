@@ -170,6 +170,8 @@ namespace Watcher
     {
         //指示是否暂停发出Change事件
         public isListen=true;
+        protected proxyCache=new WeakMap<object,any>();
+        protected processedObjects=new WeakSet<object>();
         //target中的old和new 都是Proxied对象或值
         protected Changed(obj:any,target:ChangeInfo,targetPath:string)
         {
@@ -186,7 +188,7 @@ namespace Watcher
             let pobj={
                 set(target: any, p: PropertyKey, value: any, receiver: any):boolean{
                     //只要有属性更改就加个代理
-                    if(p==NoProxy&&p==NoEvent) {
+                    if(p===NoProxy||p===NoEvent) {
                         target[p]=value;
                         return true;
                     }
@@ -197,13 +199,17 @@ namespace Watcher
                         return true;
                     }
                     let old=target[p];
-                    if(typeof value =='object'&&value[NoProxy]!=true)
+                    if(value!==null&&typeof value =='object'&&value[NoProxy]!=true)
                     {
                         //如果此处在修改一个对象的parent，则会导致parent对象被加上Proxy
                         //这使得Parent对象本身的更改也会被此对象监听(重复设置Proxy)
                         //同时下面的代码设置Parent的Parent指针指向此对象导致“循环指向” 出错
                         //因此Parent对象是只读且不可修改的
-                        let childProxy=new Proxy(value,pobj);
+                        let childProxy=_this.proxyCache.get(value);
+                        if(childProxy==null){
+                        childProxy=new Proxy(value,pobj);
+                        _this.proxyCache.set(value,childProxy);
+                        _this.proxyCache.set(childProxy,childProxy);
                         target[p]=childProxy;
                         //在目标对象上记录下parent指针 parent可以为父对象的proxy或直接为对象本身
                         //在value上记录parent则parent的更改不被监视  否则将形成无限递归
@@ -225,6 +231,7 @@ namespace Watcher
                             writable:false,
                             configurable:false
                         });
+                        }else target[p]=childProxy;
                     }
                     else
                     {
@@ -237,6 +244,14 @@ namespace Watcher
                             old:old,
                             new:target[p]},`/${String(p)}`);
                     }
+                    return true;
+                },
+                deleteProperty(target:any,p:PropertyKey){
+                    if(!Object.prototype.hasOwnProperty.call(target,p)) return true;
+                    const old=target[p];
+                    if(!Reflect.deleteProperty(target,p)) return false;
+                    if(_this.isListen&&target[NoEvent]!==true)
+                        _this.Changed(_this.proxyCache.get(target)??target,{old,new:undefined},`/${String(p)}`);
                     return true;
                 }
             } as ProxyHandler<any>;
@@ -253,10 +268,16 @@ namespace Watcher
          */
         public toProxiedData<T>(obj:T,parent:any=null,key:PropertyKey=""):T{
             try{
+                if(obj===null||typeof obj!=="object") return obj;
                 let ret=null as unknown as T;
                 //如果父对象不存在 则ret直接为obj的代理
                 obj[NoEvent]=true;
-                if(parent==null) ret=new Proxy(obj,this.ProxyObject);
+                if(parent==null) {
+                    const existing=this.proxyCache.get(obj as any);
+                    ret=existing??new Proxy(obj,this.ProxyObject);
+                    this.proxyCache.set(obj as any,ret);
+                    this.proxyCache.set(ret as any,ret);
+                }
                 else
                 {
                     //赋值给父对象
@@ -264,6 +285,8 @@ namespace Watcher
                     //从父对象中得到处理过的子对象
                     ret=parent[key];
                 }
+                if(this.processedObjects.has(obj as object)) return ret;
+                this.processedObjects.add(obj as object);
                 //处理下级对象 转换所有object
                 for(let key in obj)
                 {

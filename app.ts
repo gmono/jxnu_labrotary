@@ -1,11 +1,11 @@
-import * as posthtml from "posthtml";
-import * as parser from "posthtml-parser";
-import * as render from "posthtml-render";
+import posthtml = require("posthtml");
+import { parser } from "posthtml-parser";
+import { render } from "posthtml-render";
 import { readAsync,writeAsync } from "./app/async_node";
-let html=posthtml as PostHtmlModule;
+let html=posthtml as unknown as PostHtmlModule;
 const getRandomStr=()=>Math.random().toString(36).substr(2);
 import { ApiSet, ApiReset, ApiRecord } from "./app/posthtml_api";
-import * as postcss from "postcss";
+import postcss from "postcss";
 function isBrowser(){
     try
     {
